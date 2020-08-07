@@ -1,0 +1,130 @@
+---
+title: "Regression Models Course Project"
+author: "Samir N. Hag Ibrahim"
+date: "7/13/2020"
+output: pdf_document
+---
+# EXECUTIVE SUMMARY
+The magazine known as Motor Trend (MT) covers the automobile industry with an interest in seeing the relationship of MPG (miles per gallan) and a number of variables. The following questions needed to be Answered:
+
+   1- “Is an automatic or manual transmission better for MPG ?”
+   2- “Quantify the MPG difference between automatic and manual transmissions”
+   
+The following analysis represents the approach used to answer these two questions. From EDA,  Manual transmission cars have significantly (p<0.05) higher average miles per gallon (MPG) compared with Autmatic transmission cars (i.e. Manual transmission is better for MPG). Furthermore, the difference between the automatic and manual transimssions was quantified using first Simple Linear Regression (SLR) analysis using type of transmission as a predictor for MPG. SLR only explained 34% of the variations in MPG data ($R^2 = 0.338$) and the model showed that with manual transmission, mpg increased by 7.245 compared with automatic transmission keeping the other variables constant. On the other hand, Multiple  Regression (MR) analysis showed better model fit with $R^2 = 0.833$ (i.e. explaining 84% of the variations in the data). Weight "wt", acceleration "qsec" and manual transmission were the only significant variables that affacts mpg (p<0.05). ML model also confirmed that manual transmission is significnatly  higher mpg (2.9358 mpg) than automatic transmission keeping the other variables constant. 
+
+## 1- DATA LOADING AND EVALUATION
+Mtcars data first loaded and the following table shows the first few rows of the data.
+
+```{r include=FALSE}
+library(tidyverse)
+```
+
+```{r include=FALSE}
+data(mtcars)
+head(mtcars)
+```
+
+```{r include=FALSE}
+struc <- str(mtcars)
+sum(is.na(mtcars))
+unique(mtcars$am)
+mtcars$am <- factor(mtcars$am)
+levels(mtcars$am) <- c("Auto", "Manual")
+```
+Looking at the data structre we observe that mtcars data consist of `r length(mtcars)` variables and `r nrow(mtcars)` observations. All variables are numeric variables and there is `r sum(is.na(mtcars))` missing values in the dataset. The transmission variable was transformed into factor variable with two levels "Auto" and "Manual".
+
+## 2- EXPLORATORY DATA ANALYSIS
+From EDA, there are many possible relationships between the variable in the dataset as shown in the correlation plot (*see appendix 1 for the code*). 
+The  boxplot figure (*see appendix 2*) shows a comparison between "Auto" and "Manual" transmission for mpg.
+```{r include=FALSE}
+means <- aggregate(mpg~am, mtcars, mean)
+```
+```{r include=FALSE}
+auto_cars <- subset(mtcars, am == "Auto") ; nrow(auto_cars) 
+manual_cars <- subset(mtcars, am =="Manual"); nrow(manual_cars)
+# nrow() just to check the subset is correct
+ttest <- t.test(auto_cars$mpg, manual_cars$mpg)
+```
+```{r echo=FALSE}
+ttest
+```
+The boxplot showed that Automatic cars has mean mpg of `r round(means[1,2],1)` compared with `r round(means[2,2],1)` for Manual cars, indicating that Manual cars has higher mpg. From the t.test these means are significantly different  with p-value = `r round(ttest$p.value, 3)`, hence rejecting the null hypothesis and concluding that _Manual transmission is better for mpg_ (see appendix 3 for the code).
+
+## 3- QUANTIFYING THE RELATIONSHIPS 
+In order to quantify the relationship between mpg and transmission, we needs to perform first simple linear regression (SLR) analysis, the fowllowing table shows the regression coeficients.
+```{r echo=FALSE}
+fit1 <- lm(mpg~am, mtcars)
+summary(fit1)$coef
+```
+From SLR analysis, the slope for automatic and manual transmissions were `r round (summary(fit1)$coef[1,1], 3)` and`r round(summary(fit1)$coef[2,1], 3)` respectively. Manual cars showed a higher mpg rate by `r round(summary(fit1)$coef[2,1],2)` mpg. However, $R^2$ equals 0.338 i.e. only 34% of the variations in the data were explained by _am_ as a variable. More variable need to be included in th model. 
+
+## 4- MULTIPLE  REGRESSION (MR) ANALYSIS
+```{r echo=FALSE}
+fit2 <- step(lm(mpg~., mtcars),direction = "both" ,trace = 0)
+anova <- anova(fit1,fit2)
+summary(fit2)$coef
+```
+
+MR better fits the data and explained 84% of the variations within the dataset ($R^2 = 0.834$) with weight "wt", acceleration "qsec" and  Manual transmission "amManual" as the only variables significant variables. Manual transmission has an uplift of `r summary(fit2)$Coef[4,1]` mpg higer than that for the Automatic transmission keeping the other variables constant. 
+```{r echo=FALSE}
+anova
+```
+According to Anova test, there is a significant difference between the two model, therefore, rejecting the null hypothesis that other variables have no significant effect on mpg performance. In addition, the diagnostic plots (*see appendix 5*) showed that the residuals' distribution in ML model (fit2) is much better than in SLR model (fit1) and hence the results from fit2 was accepted. 
+
+## 5- CONCLUSION
+Non we can conclude that manual cars are better for the mpg, and it has`r summary(fit2)$Coef[4,1]` more compared with the automatic cars keeping the other variables fixed
+
+\newpage
+
+##APPENDIX
+### 1- Correlation plot
+```{r include=FALSE}
+library(PerformanceAnalytics)
+```
+
+
+```{r fig.height = 4, fig.width = 4, fig.align = "center"}
+data(mtcars)
+chart.Correlation(mtcars, histogram = FALSE, pch = 12)
+```
+### 2- Code for boxplot MPG for Auto vs Manual
+```{r include=FALSE}
+struc <- str(mtcars)
+sum(is.na(mtcars))
+unique(mtcars$am)
+mtcars$am <- factor(mtcars$am)
+levels(mtcars$am) <- c("Auto", "Manual")
+```
+
+```{r fig.height = 2.5, fig.width = 5, fig.align = "center"}
+ggplot(mtcars, aes(am, mpg))+
+        geom_boxplot(aes(fill= am))+
+        ggtitle("MPG for Automatic Vs Manual transmission")+
+        labs(x = "Transmission", y = "Miles per Hour - mpg")
+```
+### 2- Code for mpg means.
+```{r eval=FALSE}
+aggregate(mpg~am, mtcars, mean)
+```
+### 3- Code for t.test for the mpg means
+```{r eval=FALSE}
+auto_cars <- subset(mtcars, am == "Auto") ; nrow(auto_cars) 
+manual_cars <- subset(mtcars, am =="Manual"); nrow(manual_cars)
+# nrow() just to check the subset is correct
+```
+### 4- Anova for comparing the two models
+```{r eval=FALSE}
+fit2 <- step(lm(mpg~., mtcars),direction = "both" ,trace = 0)
+anova <- anova(fit1,fit2)
+```
+### 5- Model Diagnostic plots
+#### A- SLR model
+```{r fig.height = 4.5, fig.width = 4.5, fig.align = "center"}
+par(mfrow=c(2,2))
+plot(fit1)
+```
+#### B- ML model
+```{r fig.height = 4.5, fig.width = 4.5, fig.align = "center"}
+par(mfrow=c(2,2))
+plot(fit2)
+```

@@ -1,0 +1,168 @@
+---
+title: "Coursera Regression Models Project - updated"
+author: "Samir N. Hag Ibrahim"
+date: "7/10/2020"
+output:
+  html_document:
+    df_print: paged
+---
+## Introduction
+The magazine known as Motor Trend (MT) covers the automobile industry with an interest in seeing _the relationship of MPG (miles per gallan) and a number of variables_. The following questions need to be considered:
+
+   1- “Is an automatic or manual transmission better for MPG ?”
+   2- “Quantify the MPG difference between automatic and manual transmissions”
+
+## 1- Data loading and Exploration
+```{r}
+library(tidyverse)
+data(mtcars)
+head(mtcars)
+```
+
+exploring the data structure.
+
+```{r}
+str(mtcars)
+```
+
+So, we have 11 variable with 32 observation. Now checking for any missing entries in the data set.
+
+```{r}
+sum(is.na(mtcars))
+```
+
+
+Checking variable _am_ .
+
+```{r}
+unique(mtcars$am)
+```
+
+now the data is tidy and redy to EA.
+
+
+## 2- Exploratory Analysis
+checking the data summary
+
+```{r}
+summary(mtcars)
+```
+
+Now lets visualize variables' relationship.
+
+```{r}
+library(Hmisc)
+library(PerformanceAnalytics)
+chart.Correlation(mtcars, histogram = FALSE, pch = 12)
+cm <- rcorr(as.matrix(mtcars))
+
+cm
+```
+
+now lets convert _am_ into two-level factor variable
+
+```{r}
+mtcars$am <- factor(mtcars$am)
+levels(mtcars$am) <- c("Auto", "Manual")
+levels(mtcars$am)
+str(mtcars)
+with(mtcars, table(am))
+```
+from the summary results we can see that `r summary(mtcars$am)[1]` of the cars are _Automatic_ and `r summary(mtcars$am)[2]` of the cars are _Mannual_. 
+
+
+## 3- Exploring the relationship btw MPG Vs am ("Auto", "MAnual")
+
+lets remind ourselves the 1st question needs to be answered:
+1- “Is an automatic or manual transmission better for MPG ?”
+
+lest's figure out what kind of relationship do we have here, if any!.
+
+```{r}
+ggplot(mtcars, aes(am, mpg))+
+        geom_boxplot(aes(fill= am))+
+        labs(x = "Transmission", y = "Miles per Hour - mpg")
+```
+
+```{r}
+means <- aggregate(mpg~am, mtcars, mean)
+means
+```
+Appearently, Manula cars seems to have better mpg compared with automatic cars according to there average mpgs. now let's chack whether this difference is sig. or not.
+
+```{r}
+auto_cars <- subset(mtcars, am == "Auto") ; nrow(auto_cars) 
+manual_cars <- subset(mtcars, am =="Manual"); nrow(manual_cars)
+# nrow() just to check the subset is correct
+```
+now we have divided our dataset into two sets based on type of transmission
+now we carry out t-test to see whether there is a sig. difference between to two data sets or not.
+
+```{r}
+ttest <- t.test(auto_cars$mpg, manual_cars$mpg)
+ttest
+```
+
+there is a sig. difference with fixing other variables. Hence, we can say that _Manual cars is better for the mpgs._
+
+## 4- Quantifying the relationships (MPG Vs "Auto" $ "Manual")
+Now the second question was:
+“Quantify the MPG difference between automatic and manual transmissions”
+
+in order to quantify the relationship we needs to perform linear regression analysis
+
+```{r}
+fit1 <- lm(mpg~am, mtcars)
+summary(fit1)
+```
+from the SLR we can see that, the slope for the Automatic cars is `r round (summary(fit1)$coef[1,1], 3)`, where for manual cars is `r round(summary(fit1)$coef[2,1], 3)` which is `r round(summary(fit1)$coef[2,1] - summary(fit1)$coef[1,1], 3)`more. on the other hand, $R^2$ equals 0.338 i.e. only 34% of the variations in the data were explained by _am_ as a variable. to be more realistic, we need to include other varaibles in the equation in order to explain the real relationship.
+
+
+## 5- Multiregression Analysis
+now we will conduct mulit regression analysis in order to get the best fit for the model and the more realistic relationship between transmissions and mpg.
+
+```{r}
+fit2 <- step(lm(mpg~., mtcars),direction = "both" ,trace = 0)
+summary(fit2)
+```
+from multiregression anaylsis, it is clear that the model is better fitting the data now with $R^2$ = 0.834 (i.e. explaining 84% of the variation in the data). Also, the only significant variables for mpg are weight "wt", acceleration "qsec" and finally Manual transmission "amManual". and finally, Manual transmission has `r summary(fit2)$Coef[4,1]` mpg higer than that for the Automatic transmission.
+
+## comparing model diagnostics
+
+### Diagnostics for SLR (fit1)
+```{r}
+par(mfrow = c(2,2))
+plot(fit1)
+```
+
+### Diagnostics for Multiregression model (fit2)
+```{r}
+par(mfrow = c(2,2))
+plot(fit2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
