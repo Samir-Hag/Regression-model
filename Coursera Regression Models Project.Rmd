@@ -1,5 +1,5 @@
 ---
-title: "Coursera Regression Models Project - updated"
+title: "Coursera Regression Models Project"
 author: "Samir N. Hag Ibrahim"
 date: "7/10/2020"
 output:
